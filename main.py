@@ -37,8 +37,9 @@ def load_configs(_guild_id):
     global role_name
     global discord_channel
     global voice_channel
-    # discord_channel, role_name, voice_channel = read_guild_config(_guild_id)
-    read_guild_config(_guild_id)
+    discord_channel, role_name, voice_channel = read_guild_config(_guild_id)
+    print(discord_channel, role_name, voice_channel)
+    # read_guild_config(_guild_id)
 
 
 # actually load our environment first using main()
