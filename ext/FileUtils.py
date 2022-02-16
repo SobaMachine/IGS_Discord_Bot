@@ -2,6 +2,7 @@ import logging
 import sqlite3 as sql
 
 
+# stores strings and stuff for interacting with DB to make it easy to rename things in the future
 class Data:
     db_location = './configs/guild_configs.db'
     channel_table = "CREATED_CHANNELS"
@@ -17,6 +18,8 @@ class Data:
     col_intro_chan_id = 'intro_channel_id'
     col_voice_chan_id = 'voice_channel_id'
 
+
+# adds guild to the guild_configs DB with default values
 async def init_guild(_guild_id):
     db = sql.connect(Data.db_location)
     try:
@@ -27,19 +30,11 @@ async def init_guild(_guild_id):
     db.close()
 
 
-# async def get_db_data():
-#     db = sql.connect(Data.db_location)
-#     with db:
-#         cursor = db.execute("SELECT guild_id FROM CREATED_CHANNELS;")
-#         for row in cursor:
-#             print("guild_id = ", row[0])
-#     db.close()
-
-
 # Adds channel to the created channel DB along with the guild it is associated with
 # Lead with channel_id since it is the unique key in the DB
 async def add_created_channel(_channel_id, _guild_id):
     await db_execute(f"INSERT INTO {Data.channel_table} ({Data.col_created_chan}, {Data.col_guild}) VALUES ({_channel_id}, {_guild_id});", True)
+
 
 # Removes channel from the list of created channels. called from CreateAVoice.delete_channel()
 async def delete_created_channel(_channel_id):
@@ -56,7 +51,6 @@ async def edit_guild_config(_guild_id, _option, _data):
         return (f"Failed to update {_option}")
 
 
-# needs a thing for cursor?
 # Reads the configs for the given guild
 # Returns:[0] = intro_channel || [1] = intro_role || [2] = voice channel
 async def read_guild_config(_guild_id):
@@ -67,43 +61,47 @@ async def read_guild_config(_guild_id):
     return rows
 
 
+# get value of single config
 async def get_config_value(_col, _table, _key, _key_val):
     value = await db_execute(f"SELECT {_col} FROM {_table} where {_key} = {_key_val}",False,True)
    # value = value.fetchone()
     return value[0]
 
 
+# Check if item already exists in the database, returns true if it does.
 async def is_duplicate(_table, _col, _id):
     exists = await db_execute(f"SELECT {_col} from {_table} WHERE {_col} = {_id};",False, True)
     # exists = exists.fetchone()
     if exists is not None:
+
         return True
     else:
-        print(f"ID {_id} does not exist in '{_col}' in table {_table}")
+        #print(f"ID {_id} does not exist in '{_col}' in table {_table}")
         return False
     pass
 
 
+# Opens the database
 def open_db():
     try:
-        print("opened database")
+        #print("opened database")
         return sql.connect(Data.db_location)
     except sql.Error as error:
         debug_log("Encountered Error opening database",error)
         pass
 
 
+# Executes a string in the database.  optionally commits or runs fetchone() on results
 async def db_execute(_execute_string, _needs_commit=False, _fetchone=False):
     try:
         db = open_db()
         ex = db.execute(_execute_string)
-        print(f"executed '{_execute_string}")
+        #print(f"executed '{_execute_string}")
         if _fetchone:
             ex= ex.fetchone()
         if _needs_commit:
             db.commit()
         db.close()
-        print("closed database")
         return ex
     except sql.Error as error:
         debug_log(f"An error occurred when executing {_execute_string}", error)
@@ -113,8 +111,7 @@ async def db_execute(_execute_string, _needs_commit=False, _fetchone=False):
         debug_log(f"A database error has occurred.", error)
 
 
-
-
+# simplify some debugging junk
 def debug_log(_string, _error=None):
     print(_string)
     logging.WARN(_error)

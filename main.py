@@ -40,7 +40,6 @@ if __name__ == '__main__':
     load_environment()
 
 def setup(bot):
-    bot.add_cog(Example(bot))
     bot.add_cog(EditConfigCommands(bot))
     bot.add_cog((CreateAVoiceCommands(bot)))
     print(f"Bot user {bot.user} is Ready!")
@@ -54,14 +53,6 @@ def get_guild(ctx):
     return ctx.author.guild
 
 
-class Example(commands.Cog):
-    def __init__(self,bot):
-        self.bot = bot
-
-        @slash_command(guild_ids=[852958354677694474])
-        async def hello (ctx):
-            print("WOWEE")
-            await ctx.respond("YOU DID IT!")
 
 # TODO DO NOT DELETE
 # Sets user role if they post in the given chat
@@ -95,12 +86,13 @@ class CreateAVoiceCommands(commands.Cog):
     @bot.command()
     async def testcommand(ctx):
         channels = discord.utils.get(ctx.author.voice.channel)
-        print(channels)
+
 
     @bot.event  # Runs when users join and leave voice channels.
     async def on_voice_state_update(member, before, after):
         # reload this config before doing anything.  it was acting weird without this.
         await load_configs(member.guild.id)
+        #print (member.guild.voice_channels)
         voice_channel = await get_config_value(Data.col_voice_chan, Data.guilds_table, Data.col_guild, member.guild.id)
         await CreateAVoice.edit_channel(member, before, after, voice_channel)
 
