@@ -37,11 +37,7 @@ def load_configs(_guild_id):
     global role_name
     global discord_channel
     global voice_channel
-    # sets variables based on the json config
-    #role_name = read_configs()[intro_role_config]
-    #discord_channel = read_configs()[intro_channel_config]
-    #voice_channel = read_configs()[voice_channel_config]
-    #discord_channel, role_name, voice_channel = read_guild_config(_guild_id)
+    # discord_channel, role_name, voice_channel = read_guild_config(_guild_id)
     read_guild_config(_guild_id)
 
 
