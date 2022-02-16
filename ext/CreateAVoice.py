@@ -1,6 +1,8 @@
 import ext.FileUtils as db
 from ext.FileUtils import Data
 import sqlite3 as sql
+import logging
+
 
 # Creates or destroys a channel when called
 async def edit_channel(member, before, after, voice_channel):
@@ -12,20 +14,17 @@ async def edit_channel(member, before, after, voice_channel):
     # for chan in voice_channels:
     #     if check_created_channel(chan) and check_remaining_members(chan):
     #         await delete_channel(chan)
-    print(member.name)
-    print(before.channel)
-    print(after.channel)
-    print(voice_channel)
 
     # Creates new channel
     if after.channel is not None:
         if after.channel.name == voice_channel:
-            await create_channel(member, after)
+            new_voice = await create_channel(member, after)
 
     # Note:  We check against new_voice to avoid trying to delete the channel when joining.
     if before.channel is not None and before.channel.name is not voice_channel and (after.channel is None or after.channel is not new_voice):
-        if db.is_duplicate(Data.channel_table,Data.col_created_chan, before.channel.id) and check_remaining_members(before.channel):
-            await delete_channel(before.channel)
+        if await db.is_duplicate(Data.channel_table,Data.col_created_chan, before.channel.id) and check_remaining_members(before.channel):
+            await delete_channel(before.channel, voice_channel)
+            pass
 
 
 # check if member has a nickname set, else return their discord username
@@ -66,7 +65,9 @@ async def create_channel(_member, _after):
         print("the channel has been added to the database!")
     except sql.IntegrityError as error:
         print(f"The channel you are trying to add ({_after}) already exists as a unique key in the database")
+        logging.WARN(error)
         pass
+    return new_voice
 
 
 # Deletes the given channel

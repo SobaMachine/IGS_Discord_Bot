@@ -1,12 +1,14 @@
 import os
 from dotenv import load_dotenv
 from ext import CreateAVoice, FileUtils
-from ext.FileUtils import edit_guild_config, read_guild_config, Data
+from ext.FileUtils import edit_guild_config, read_guild_config, Data, get_config_value
 import discord
 from discord.commands import slash_command, Option
 from discord.ext import commands
+from discord.types.channel import VoiceChannel
 
 bot = discord.Bot()
+
 
 slash = None
 token = None
@@ -90,10 +92,16 @@ class CreateAVoiceCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    @bot.command()
+    async def testcommand(ctx):
+        channels = discord.utils.get(ctx.author.voice.channel)
+        print(channels)
+
     @bot.event  # Runs when users join and leave voice channels.
     async def on_voice_state_update(member, before, after):
         # reload this config before doing anything.  it was acting weird without this.
-        load_configs(member.guild.id)
+        await load_configs(member.guild.id)
+        voice_channel = await get_config_value(Data.col_voice_chan, Data.guilds_table, Data.col_guild, member.guild.id)
         await CreateAVoice.edit_channel(member, before, after, voice_channel)
 
 
@@ -102,12 +110,10 @@ class EditConfigCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-
-
-    async def get_voice_channels(ctx: discord.AutocompleteContext):
-        guild = ctx.value
-        print(guild)
-        return #[voice_channel for voice_channel in guild.channels]
+# TODO: I still need to figure out why i can't get voice or text channel lists
+    # async def get_voice_channels(ctx: discord.AutocompleteContext):
+    #     print(ctx.interaction.guild.voice_channels)
+    #     return ['0','1','2']#[voice_channel for voice_channel in guild.channels]
 
     @bot.slash_command(guild_ids=[852958354677694474], description="Updates the channel to be monitored for introductions")
     async def intro_channel(ctx, channel_name):
@@ -124,7 +130,7 @@ class EditConfigCommands(commands.Cog):
         await ctx.respond(await edit_guild_config(guild.id, Data.col_intro_role, role_name))
 
     @bot.slash_command(guild_ids=[852958354677694474], description="Updates the channel to be used as base create-a-voice channel")
-    async def voice_channel(ctx: discord.ApplicationContext, channel_name: Option(str, "Pick a channel", autocomplete=get_voice_channels)):
+    async def voice_channel(ctx: discord.ApplicationContext, channel_name: Option(str, "Pick a channel")):
         guild=get_guild(ctx)
         new_id = discord.utils.get(guild.channels, name=role_name)
         await edit_guild_config(guild.id, Data.col_voice_chan_id, new_id)

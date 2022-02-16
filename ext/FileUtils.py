@@ -39,40 +39,43 @@ async def init_guild(_guild_id):
 # Adds channel to the created channel DB along with the guild it is associated with
 # Lead with channel_id since it is the unique key in the DB
 async def add_created_channel(_channel_id, _guild_id):
-    await db_execute(open_db(),f"INSERT INTO {Data.channel_table} ({Data.col_created_chan}, {Data.col_guild}) VALUES ({_channel_id}, {_guild_id});", True)
-
+    await db_execute(f"INSERT INTO {Data.channel_table} ({Data.col_created_chan}, {Data.col_guild}) VALUES ({_channel_id}, {_guild_id});", True)
 
 # Removes channel from the list of created channels. called from CreateAVoice.delete_channel()
 async def delete_created_channel(_channel_id):
-    await db_execute(open_db(),f"DELETE from {Data.channel_table} where {Data.col_created_chan} = '{_channel_id}';",True)
+    await db_execute(f"DELETE from {Data.channel_table} where {Data.col_created_chan} = '{_channel_id}';",True)
 
 
 # Update the database config with new values
 async def edit_guild_config(_guild_id, _option, _data):
     try:
-        await db_execute( open_db(),f"UPDATE {Data.guilds_table} SET {_option} = '{_data}' WHERE {Data.col_guild}={_guild_id};", True)
+        await db_execute(f"UPDATE {Data.guilds_table} SET {_option} = '{_data}' WHERE {Data.col_guild}={_guild_id};", True)
         # return for output to respond to member
         return (f"Updated {_option} to {_data}")
     except:
         return (f"Failed to update {_option}")
 
 
+# needs a thing for cursor?
 # Reads the configs for the given guild
 # Returns:[0] = intro_channel || [1] = intro_role || [2] = voice channel
 async def read_guild_config(_guild_id):
-    rows = await db_execute(open_db().cursor(), f"SELECT {Data.col_intro_chan}, {Data.col_intro_role}, {Data.col_voice_chan} "
+    rows = await db_execute(f"SELECT {Data.col_intro_chan}, {Data.col_intro_role}, {Data.col_voice_chan} "
                           f"FROM {Data.guilds_table} "
-                          f"WHERE {Data.col_guild} = {_guild_id};",False)
-    rows=rows.fetchone()
+                          f"WHERE {Data.col_guild} = {_guild_id};",False,True)
+   # rows=rows.fetchone()
     return rows
 
 
-async def get_config_value(_table, _key, _key_val, _col):
-    return await db_execute(open_db(), f"SELECT {_col} FROM {_table} where {_key} = {_key_val}")
+async def get_config_value(_col, _table, _key, _key_val):
+    value = await db_execute(f"SELECT {_col} FROM {_table} where {_key} = {_key_val}",False,True)
+   # value = value.fetchone()
+    return value[0]
 
 
 async def is_duplicate(_table, _col, _id):
-    exists = await db_execute(open_db(), f"SELECT {_col} from {_table} WHERE {_col} = {_id};").fetchone()
+    exists = await db_execute(f"SELECT {_col} from {_table} WHERE {_col} = {_id};",False, True)
+    # exists = exists.fetchone()
     if exists is not None:
         return True
     else:
@@ -83,28 +86,35 @@ async def is_duplicate(_table, _col, _id):
 
 def open_db():
     try:
+        print("opened database")
         return sql.connect(Data.db_location)
     except sql.Error as error:
         debug_log("Encountered Error opening database",error)
         pass
 
 
-async def db_execute(_db,_execute_string, _needs_commit=False):
+async def db_execute(_execute_string, _needs_commit=False, _fetchone=False):
     try:
-        return _db.execute(_execute_string)
+        db = open_db()
+        ex = db.execute(_execute_string)
+        print(f"executed '{_execute_string}")
+        if _fetchone:
+            ex= ex.fetchone()
+        if _needs_commit:
+            db.commit()
+        db.close()
+        print("closed database")
+        return ex
     except sql.Error as error:
         debug_log(f"An error occurred when executing {_execute_string}", error)
     except sql.IntegrityError as error:
         debug_log("The channel you are trying to add already exists as a unique key in the database", error)
     except sql.DatabaseError as error:
-        debug_log(f"A database error has occurred.",error)
+        debug_log(f"A database error has occurred.", error)
 
 
-    if _needs_commit:
-        _db.commit()
-    _db.close()
 
 
 def debug_log(_string, _error=None):
     print(_string)
-    logging.Warn(_error)
+    logging.WARN(_error)
