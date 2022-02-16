@@ -1,17 +1,21 @@
-from ext.FileUtils import delete_created_channel, add_created_channel,is_duplicate
-created_channels = set()
+import ext.FileUtils as db
+from ext.FileUtils import Data
+import sqlite3 as sql
 
 # Creates or destroys a channel when called
 async def edit_channel(member, before, after, voice_channel):
     # if we join the create-a voice channel, clone the channel and give it a name
     new_voice = None  # temp storage for our newly created channel
-    voice_channels = member.guild.voice_channels
 
     # TODO: the normal delete stuff is pretty redundant to this, maybe rework it?
     # check if there are any channels we've created with 0 members in it
-    for chan in voice_channels:
-        if check_created_channel(chan) and check_remaining_members(chan):
-            await delete_channel(chan)
+    # for chan in voice_channels:
+    #     if check_created_channel(chan) and check_remaining_members(chan):
+    #         await delete_channel(chan)
+    print(member.name)
+    print(before.channel)
+    print(after.channel)
+    print(voice_channel)
 
     # Creates new channel
     if after.channel is not None:
@@ -20,7 +24,7 @@ async def edit_channel(member, before, after, voice_channel):
 
     # Note:  We check against new_voice to avoid trying to delete the channel when joining.
     if before.channel is not None and before.channel.name is not voice_channel and (after.channel is None or after.channel is not new_voice):
-        if check_created_channel(before.channel) and check_remaining_members(before.channel):
+        if db.is_duplicate(Data.channel_table,Data.col_created_chan, before.channel.id) and check_remaining_members(before.channel):
             await delete_channel(before.channel)
 
 
@@ -32,10 +36,10 @@ def check_member_name(_member):
         return _member.name
 
 
-# Keeps script from deleting channels it didn't create.
-def check_created_channel(_channel):
-    # just uses FileUtil's is_duplicate to check if the channel exists in the list. Reopens file to get latest version
-    return is_duplicate(_channel.id, True)
+# # Keeps script from deleting channels it didn't create.
+# def check_created_channel(_channel):
+#     # just uses FileUtil's is_duplicate to check if the channel exists in the list. Reopens file to get latest version
+#     return is_duplicate(_channel.id, True)
 
 
 # checks if there is nobody remaining in the chat
@@ -57,10 +61,19 @@ async def create_channel(_member, _after):
     await new_voice.move(after=_after.channel)
     await _member.move_to(new_voice)  # moves the member to their voice channel
     # created_channels.add(new_voice.id)  # add channel id to our set of created channels to check before deletion
-    await add_created_channel(new_voice.id)
+    try:
+        await db.add_created_channel(new_voice.id, _member.guild.id)
+        print("the channel has been added to the database!")
+    except sql.IntegrityError as error:
+        print(f"The channel you are trying to add ({_after}) already exists as a unique key in the database")
+        pass
 
 
 # Deletes the given channel
-async def delete_channel(_channel):
-    await delete_created_channel(_channel.id)
-    await _channel.delete()
+async def delete_channel(_channel, voice_channel):
+    if _channel == voice_channel:
+        pass
+    else:
+        await db.delete_created_channel(_channel.id)
+        await _channel.delete()
+        print("the channel has been deleted!")
