@@ -1,0 +1,9 @@
+{
+    "Guild_ID": "852958354677694474",
+    "Configs": {
+        "Single_Post_Channel": "bot-junk",
+        "Single_Post_Role": "Introduced",
+        "Create-A-Voice_Channel": "create-a-voice"
+    },
+    "Created_Channels": []
+}

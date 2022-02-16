@@ -1,0 +1,8 @@
+{
+    "Configs": {
+        "Single_Post_Channel": "bot-junk",
+        "Single_Post_Role": "Introduced",
+        "Create-A-Voice_Channel": "create-a-voice"
+    },
+    "Created_Channels":[]
+}
