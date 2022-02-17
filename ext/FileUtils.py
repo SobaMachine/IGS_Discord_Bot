@@ -9,8 +9,8 @@ class Data:
     guilds_table = "GUILD_CONFIGS"
     birthday_table = "BIRTHDAYS"
 
-    col_created_chan = 'created_channel'
-    col_guild = 'guild_id'
+    col_created_chan_id = 'created_channel_id'
+    col_guild_id = 'guild_id'
     col_intro_role = 'intro_role'
     col_intro_chan = 'intro_channel'
     col_voice_chan = 'voice_channel'
@@ -33,18 +33,18 @@ async def init_guild(_guild_id):
 # Adds channel to the created channel DB along with the guild it is associated with
 # Lead with channel_id since it is the unique key in the DB
 async def add_created_channel(_channel_id, _guild_id):
-    await db_execute(f"INSERT INTO {Data.channel_table} ({Data.col_created_chan}, {Data.col_guild}) VALUES ({_channel_id}, {_guild_id});", True)
+    await db_execute(f"INSERT INTO {Data.channel_table} ({Data.col_created_chan_id}, {Data.col_guild_id}) VALUES ({_channel_id}, {_guild_id});", True)
 
 
 # Removes channel from the list of created channels. called from CreateAVoice.delete_channel()
 async def delete_created_channel(_channel_id):
-    await db_execute(f"DELETE from {Data.channel_table} where {Data.col_created_chan} = '{_channel_id}';",True)
+    await db_execute(f"DELETE from {Data.channel_table} where {Data.col_created_chan_id} = '{_channel_id}';", True)
 
 
 # Update the database config with new values
 async def edit_guild_config(_guild_id, _option, _data):
     try:
-        await db_execute(f"UPDATE {Data.guilds_table} SET {_option} = '{_data}' WHERE {Data.col_guild}={_guild_id};", True)
+        await db_execute(f"UPDATE {Data.guilds_table} SET {_option} = '{_data}' WHERE {Data.col_guild_id}={_guild_id};", True)
         # return for output to respond to member
         return (f"Updated {_option} to {_data}")
     except:
@@ -54,13 +54,15 @@ async def edit_guild_config(_guild_id, _option, _data):
 # Reads the configs for the given guild
 # Returns:[0] = intro_channel || [1] = intro_role || [2] = voice channel
 async def read_guild_config(_guild_id):
-    rows = await db_execute(f"SELECT {Data.col_intro_chan}, {Data.col_intro_role}, {Data.col_voice_chan} "
+    rows = await db_execute(f"SELECT {Data.col_intro_chan_id}, {Data.col_intro_role_id}, {Data.col_voice_chan_id} "
                           f"FROM {Data.guilds_table} "
-                          f"WHERE {Data.col_guild} = {_guild_id};",False,True)
+                          f"WHERE {Data.col_guild_id} = {_guild_id};", False, True)
    # rows=rows.fetchone()
     return rows
 
-
+async def get_all_values(_col, _table):
+    value = await db_execute(f"SELECT {_col} FROM {_table}",False,False,True)
+    return value
 # get value of single config
 async def get_config_value(_col, _table, _key, _key_val):
     value = await db_execute(f"SELECT {_col} FROM {_table} where {_key} = {_key_val}",False,True)
@@ -92,13 +94,19 @@ def open_db():
 
 
 # Executes a string in the database.  optionally commits or runs fetchone() on results
-async def db_execute(_execute_string, _needs_commit=False, _fetchone=False):
+async def db_execute(_execute_string, _needs_commit=False, _fetchone=False, _fetchall=False):
     try:
         db = open_db()
+        if _fetchall:
+            db = db.cursor()
+        else:
+            db = db
         ex = db.execute(_execute_string)
         #print(f"executed '{_execute_string}")
         if _fetchone:
-            ex= ex.fetchone()
+            ex = ex.fetchone()
+        if _fetchall:
+            ex = ex.fetchall()
         if _needs_commit:
             db.commit()
         db.close()

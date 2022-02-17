@@ -2,10 +2,10 @@ import os
 from dotenv import load_dotenv
 from ext import CreateAVoice, FileUtils
 from ext.FileUtils import edit_guild_config, read_guild_config, Data, get_config_value
+from ext.SinglePostChannel import single_post
 import discord
 from discord.commands import slash_command, Option
 from discord.ext import commands
-from discord.types.channel import VoiceChannel
 
 bot = discord.Bot()
 
@@ -56,10 +56,10 @@ def get_guild(ctx):
 
 # TODO DO NOT DELETE
 # Sets user role if they post in the given chat
-# @bot.event  # Do things when a message is received
-# async def on_message(_message):
-#     await SinglePostChannel.single_post(_message, discord_channel, role_name)
-#     await bot.process_commands(_message)
+@bot.event  # Do things when a message is received
+async def on_message(_message):
+    await single_post(_message)
+    #await bot.process_commands(_message)
 
 
 # Create or destroy channels as user joins / leaves
@@ -83,17 +83,11 @@ class CreateAVoiceCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @bot.command()
-    async def testcommand(ctx):
-        channels = discord.utils.get(ctx.author.voice.channel)
-
-
     @bot.event  # Runs when users join and leave voice channels.
     async def on_voice_state_update(member, before, after):
         # reload this config before doing anything.  it was acting weird without this.
         await load_configs(member.guild.id)
-        #print (member.guild.voice_channels)
-        voice_channel = await get_config_value(Data.col_voice_chan, Data.guilds_table, Data.col_guild, member.guild.id)
+        voice_channel = await get_config_value(Data.col_voice_chan_id, Data.guilds_table, Data.col_guild_id, member.guild.id)
         await CreateAVoice.edit_channel(member, before, after, voice_channel)
 
 
@@ -102,31 +96,28 @@ class EditConfigCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-# TODO: I still need to figure out why i can't get voice or text channel lists
-    # async def get_voice_channels(ctx: discord.AutocompleteContext):
-    #     print(ctx.interaction.guild.voice_channels)
-    #     return ['0','1','2']#[voice_channel for voice_channel in guild.channels]
+# TODO: Clean this up a bit
 
     @bot.slash_command(guild_ids=[852958354677694474], description="Updates the channel to be monitored for introductions")
-    async def intro_channel(ctx, channel_name):
+    async def intro_channel(ctx, name):
         guild = get_guild(ctx)
-        new_id = discord.utils.get(guild.channels, name=role_name)
+        new_id = discord.utils.get(guild.channels, name=name).id
         await edit_guild_config(guild.id, Data.col_intro_chan_id, new_id)
-        await ctx.respond(await edit_guild_config(guild.id, Data.col_intro_chan, channel_name))
+        await ctx.respond(await edit_guild_config(guild.id, Data.col_intro_chan, name))
 
     @bot.slash_command(guild_ids=[852958354677694474], description="Updates the role used to restrict writing to introduction channel")
-    async def intro_role(ctx, role_name):
+    async def intro_role(ctx, name):
         guild = get_guild(ctx)
-        new_id = discord.utils.get(guild.roles, name=role_name)
+        new_id = discord.utils.get(guild.roles, name=name).id
         await edit_guild_config(guild.id, Data.col_intro_role_id, new_id)
-        await ctx.respond(await edit_guild_config(guild.id, Data.col_intro_role, role_name))
+        await ctx.respond(await edit_guild_config(guild.id, Data.col_intro_role, name))
 
     @bot.slash_command(guild_ids=[852958354677694474], description="Updates the channel to be used as base create-a-voice channel")
-    async def voice_channel(ctx: discord.ApplicationContext, channel_name: Option(str, "Pick a channel")):
+    async def voice_channel(ctx, name):
         guild=get_guild(ctx)
-        new_id = discord.utils.get(guild.channels, name=role_name)
+        new_id = discord.utils.get(guild.channels, name=name).id
         await edit_guild_config(guild.id, Data.col_voice_chan_id, new_id)
-        await ctx.respond(await edit_guild_config(guild.id, Data.col_voice_chan, channel_name))
+        await ctx.respond(await edit_guild_config(guild.id, Data.col_voice_chan, name))
 
 
 
