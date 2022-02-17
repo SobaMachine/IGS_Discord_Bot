@@ -5,7 +5,7 @@ import logging, discord
 import utils.MemberUtils as MemberUtils
 
 
-# Creates or destroys a channel when called
+# logic for determining if we need to create or delete channels
 async def edit_channel(member, before, after, voice_channel):
     new_voice = None  # temp storage for our newly created channel
 
@@ -39,7 +39,8 @@ async def create_channel(_member, _after):
     return new_voice
 
 
-# # Keeps script from deleting channels it didn't create.
+# Checks if channel exists in DB
+# Keeps script from deleting channels it didn't create.
 async def check_created_channel(_channel):
     # just uses FileUtil's is_duplicate to check if the channel exists in the list. Reopens file to get latest version
     return await db.is_duplicate(Data.channel_table, Data.col_created_chan_id, _channel)
@@ -57,8 +58,8 @@ def check_remaining_members(_channel):
 
 
 # cleans voice chat and DB of channels orphaned from both
+# Essentially logic for calling delete_channel()
 async def clean_channels(member, voice_channel):
-    print(voice_channel)
     #voice_channels = member.guild.voice_channels
 
     voice_channels = []
@@ -83,7 +84,7 @@ async def clean_channels(member, voice_channel):
                 pass
 
 
-# Deletes the given channel
+# Deletes the given channel from guild and from DB
 async def delete_channel(member, _channel, voice_channel):
     if _channel == voice_channel:
         pass

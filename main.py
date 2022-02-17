@@ -6,6 +6,7 @@ from ext.SinglePostChannel import single_post
 import discord
 from discord.commands import slash_command, Option
 from discord.ext import commands
+from utils.GuildUtils import get_id, get_guild, Guild_Attributes
 
 bot = discord.Bot()
 
@@ -16,6 +17,7 @@ discord_guild = None
 role_name = None
 discord_channel = None
 voice_channel = None
+
 
 
 # load our environment variables from the .env file
@@ -39,30 +41,23 @@ async def load_configs(_guild_id):
 if __name__ == '__main__':
     load_environment()
 
+# adds cogs and does general setup work
 def setup(bot):
     bot.add_cog(EditConfigCommands(bot))
     bot.add_cog((CreateAVoiceCommands(bot)))
     print(f"Bot user {bot.user} is Ready!")
+
 
 @bot.event
 async def on_ready():
     await load_configs(852958354677694474)
     setup(bot)
 
-def get_guild(ctx):
-    return ctx.author.guild
 
-
-
-# TODO DO NOT DELETE
-# Sets user role if they post in the given chat
-@bot.event  # Do things when a message is received
+@bot.event  # Do things when a message is received ensures that commands are also processed
 async def on_message(_message):
     await single_post(_message)
-    #await bot.process_commands(_message)
-
-
-# Create or destroy channels as user joins / leaves
+    await bot.process_application_commands(_message)
 
 
 # class SlashCommands(interactions.Extension):
@@ -98,26 +93,31 @@ class EditConfigCommands(commands.Cog):
 
 # TODO: Clean this up a bit
 
-    @bot.slash_command(guild_ids=[852958354677694474], description="Updates the channel to be monitored for introductions")
-    async def intro_channel(ctx, name):
-        guild = get_guild(ctx)
-        new_id = discord.utils.get(guild.channels, name=name).id
-        await edit_guild_config(guild.id, Data.col_intro_chan_id, new_id)
-        await ctx.respond(await edit_guild_config(guild.id, Data.col_intro_chan, name))
 
-    @bot.slash_command(guild_ids=[852958354677694474], description="Updates the role used to restrict writing to introduction channel")
+    @bot.slash_command(guild_ids=[852958354677694474],
+                       description="Updates the role used to restrict writing to introduction channel")
     async def intro_role(ctx, name):
-        guild = get_guild(ctx)
-        new_id = discord.utils.get(guild.roles, name=name).id
+        guild, new_id = await get_id(ctx, name, Guild_Attributes.roles)
         await edit_guild_config(guild.id, Data.col_intro_role_id, new_id)
         await ctx.respond(await edit_guild_config(guild.id, Data.col_intro_role, name))
 
-    @bot.slash_command(guild_ids=[852958354677694474], description="Updates the channel to be used as base create-a-voice channel")
+
+    @bot.slash_command(guild_ids=[852958354677694474],
+                       description="Updates the channel to be monitored for introductions")
+    async def intro_channel(ctx, name):
+        guild, new_id = await get_id(ctx, name, Guild_Attributes.channels)
+        await edit_guild_config(guild.id, Data.col_intro_chan_id, new_id)
+        await ctx.respond(await edit_guild_config(guild.id, Data.col_intro_chan, name))
+
+
+
+    @bot.slash_command(guild_ids=[852958354677694474],
+                       description="Updates the channel to be used as base create-a-voice channel")
     async def voice_channel(ctx, name):
-        guild=get_guild(ctx)
-        new_id = discord.utils.get(guild.channels, name=name).id
+        guild, new_id = await get_id(ctx, name, Guild_Attributes.channels)
         await edit_guild_config(guild.id, Data.col_voice_chan_id, new_id)
         await ctx.respond(await edit_guild_config(guild.id, Data.col_voice_chan, name))
+
 
 
 

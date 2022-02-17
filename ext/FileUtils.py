@@ -60,9 +60,12 @@ async def read_guild_config(_guild_id):
    # rows=rows.fetchone()
     return rows
 
+
 async def get_all_values(_col, _table):
-    value = await db_execute(f"SELECT {_col} FROM {_table}",False,False,True)
+    value = await db_execute(f"SELECT {_col} FROM {_table};",False,False,True)
     return value
+
+
 # get value of single config
 async def get_config_value(_col, _table, _key, _key_val):
     value = await db_execute(f"SELECT {_col} FROM {_table} where {_key} = {_key_val}",False,True)
